@@ -1,0 +1,24 @@
+# Core
+python-dotenv>=1.0.1
+json-repair>=0.30.0
+smolagents[openai]>=1.21.0
+smolagents[gradio]
+smolagents[mcp]
+
+# Notebook: RAG-Beispiel
+datasets
+ipykernel
+langchain
+langchain-community
+langchain-core
+langchain-ollama
+faiss-cpu
+
+# Notebook: Web-Suche 
+ddgs
+
+# MCP (Model Context Protocol) – für Docker-basierte MCP-Server in tools.py
+mcp
+
+# OpenAI-kompatible API (OpenRouter + Ollama)
+openai

@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "smolagents-app"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "python-dotenv>=1.0.1",
+    "smolagents[openai]>=1.21.0",
+]
+
+[project.scripts]
+smolagents-app = "main:main"
+
+[tool.hatch.build.targets.wheel]
+include = [
+    "main.py",
+    "settings.py",
+    "openrouter.py",
+    "tools.py",
+    "agent_builder.py",
+    "gradio_ui.py",
+]
