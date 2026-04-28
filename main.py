@@ -13,10 +13,13 @@
 #   python main.py
 # -----------------------------------------------------------------------------
 
+import atexit
+
 from agent_builder import build_agent
 from gradio_ui import launch_gradio
 from openrouter import create_model
 from settings import load_settings
+from tools import close_mcp
 
 
 # main() – vier Schritte, eine Anwendung.
@@ -43,6 +46,9 @@ def main() -> None:
     model = create_model(settings)
 
     agent = build_agent(model, settings)
+
+    # MCP-Verbindungen sauber schließen, wenn die App beendet wird.
+    atexit.register(close_mcp)
 
     launch_gradio(agent, settings)
 

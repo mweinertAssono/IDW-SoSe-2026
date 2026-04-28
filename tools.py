@@ -89,7 +89,7 @@ import os
 from typing import Any
 
 from mcp import StdioServerParameters
-from smolagents import DuckDuckGoSearchTool, ToolCollection
+from smolagents import DuckDuckGoSearchTool, ToolCollection, WikipediaSearchTool
 
 from settings import Settings
 
@@ -161,26 +161,44 @@ def get_tools(settings: Settings) -> list[Any]:
     #   Docker Hub: https://hub.docker.com/r/mcp/fetch
     # -------------------------------------------------------------------------
     if settings.use_docker_mcp:
-        mcp_server = StdioServerParameters(
-            command="docker",
-            args=[
-                "run",
-                "-i",       # Interaktiver Modus: Container liest von stdin
-                "--rm",     # Container wird nach dem Stoppen automatisch gelöscht
-                "mcp/fetch",
-            ],
-            env={**os.environ},  # Umgebungsvariablen an den Container weitergeben
-        )
+        mcp_servers = [
+            # ("mcp/paper-search", []),
+        ]
 
-        try:
-            with ToolCollection.from_mcp(mcp_server, trust_remote_code=True) as mcp_tools:
-                # mcp_tools.tools ist eine Liste aller Werkzeuge, die der Server anbietet.
-                # Wir fügen sie direkt zur tools-Liste hinzu – der Agent sieht sie wie
-                # jedes andere smolagents-Werkzeug, ohne den Unterschied zu kennen.
-                tools.extend(mcp_tools.tools)
-        except Exception:
-            # Docker läuft nicht oder das Image ist nicht verfügbar.
-            # Kein Problem – wir starten trotzdem, nur ohne MCP-Tools.
-            print("⚠️  MCP-Tools nicht verfügbar (Docker nicht erreichbar). Starte ohne MCP.")
+        for image, extra_args in mcp_servers:
+            mcp_server = StdioServerParameters(
+                command="docker",
+                args=[
+                    "run",
+                    "-i",       # Interaktiver Modus: Container liest von stdin
+                    "--rm",     # Container wird nach dem Stoppen automatisch gelöscht
+                    *extra_args,
+                    image,
+                ],
+                env={**os.environ},
+            )
+
+            try:
+                mcp_cm = ToolCollection.from_mcp(mcp_server, trust_remote_code=True)
+                mcp_collection = mcp_cm.__enter__()
+                _mcp_context_managers.append(mcp_cm)
+                tools.extend(mcp_collection.tools)
+                print(f"  ✅ {image}: {[t.name for t in mcp_collection.tools]}")
+            except Exception as exc:
+                print(f"  ⚠️  {image} nicht verfügbar: {exc}")
 
     return tools
+
+
+# Liste offener MCP-Context-Manager – wird von close_mcp() aufgeräumt.
+_mcp_context_managers: list[Any] = []
+
+
+def close_mcp() -> None:
+    """Alle offenen MCP-Verbindungen sauber beenden."""
+    for cm in _mcp_context_managers:
+        try:
+            cm.__exit__(None, None, None)
+        except Exception:
+            pass
+    _mcp_context_managers.clear()
